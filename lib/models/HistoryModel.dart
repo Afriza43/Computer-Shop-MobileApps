@@ -5,6 +5,7 @@ class History {
   final String gambar;
   final int quantity;
   final String purchaseTime;
+  final String userName;
 
   History({
     required this.id,
@@ -13,6 +14,7 @@ class History {
     required this.gambar,
     required this.quantity,
     required this.purchaseTime,
+    required this.userName,
   });
 
   factory History.fromJson(Map<String, dynamic> json) => History(
@@ -22,6 +24,7 @@ class History {
         gambar: json['gambar'],
         quantity: json['quantity'],
         purchaseTime: json['purchaseTime'],
+        userName: json['userName'],
       );
 
   factory History.fromMap(Map<String, dynamic> map) => History(
@@ -31,5 +34,6 @@ class History {
         gambar: map['gambar'],
         quantity: map['quantity'],
         purchaseTime: map['purchaseTime'],
+        userName: map['userName'],
       );
 }

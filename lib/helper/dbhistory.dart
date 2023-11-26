@@ -18,7 +18,7 @@ class HistoryDBHelper {
 
   Future<Database> initHistoryDb() async {
     io.Directory directory = await getApplicationDocumentsDirectory();
-    String path = directory.path + 'riwayat_bayar.db';
+    String path = directory.path + 'purchased.db';
     var historyDatabase =
         await openDatabase(path, version: 1, onCreate: _createHistoryDb);
     return historyDatabase;
@@ -32,7 +32,8 @@ class HistoryDBHelper {
         subtotal INTEGER,
         gambar TEXT,
         quantity INTEGER,
-        purchaseTime TEXT
+        purchaseTime TEXT,
+        userName TEXT
       )
     ''');
   }
@@ -44,14 +45,16 @@ class HistoryDBHelper {
     return _historyDatabase!;
   }
 
-  Future<List<Map<String, dynamic>>> selectPurchaseHistory() async {
+  Future<List<Map<String, dynamic>>> selectPurchaseHistory(
+      String userName) async {
     Database db = await historyDatabase;
-    var mapList = await db.query('riwayat_bayar');
+    var mapList = await db
+        .query('riwayat_bayar', where: 'userName = ?', whereArgs: [userName]);
     return mapList;
   }
 
-  Future<List<History>> getHistory() async {
-    var mapList = await selectPurchaseHistory();
+  Future<List<History>> getHistory(String userName) async {
+    var mapList = await selectPurchaseHistory(userName);
     int count = mapList.length;
     List<History> list = [];
     for (int i = 0; i < count; i++) {

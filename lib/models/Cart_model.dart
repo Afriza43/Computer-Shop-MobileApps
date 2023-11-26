@@ -6,6 +6,7 @@ class Cart {
   final String tipe;
   final String deskripsi;
   final int jumlah;
+  final String userName;
 
   Cart({
     required this.id,
@@ -15,6 +16,7 @@ class Cart {
     required this.tipe,
     required this.deskripsi,
     required this.jumlah,
+    required this.userName,
   });
 
   factory Cart.fromJson(Map<String, dynamic> json) => Cart(
@@ -25,6 +27,7 @@ class Cart {
         tipe: json["tipe"],
         deskripsi: json["deskripsi"],
         jumlah: json["jumlah"],
+        userName: json["userName"],
       );
 
   factory Cart.fromMap(Map<String, dynamic> map) => Cart(
@@ -35,5 +38,6 @@ class Cart {
         tipe: map['tipe'],
         deskripsi: map['deskripsi'],
         jumlah: map['jumlah'],
+        userName: map['userName'],
       );
 }

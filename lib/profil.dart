@@ -1,10 +1,14 @@
 import 'dart:io';
+import 'package:finalproject_mobile/helper/dbhelper.dart';
+import 'package:finalproject_mobile/models/UserModels.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:finalproject_mobile/login/login.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sqflite/sqflite.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({Key? key}) : super(key: key);
@@ -15,11 +19,22 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   late SharedPreferences logindata;
-  late String username;
+  late String username = "";
+  List<Users> userList = [];
+  bool _isLoading = true;
+
+  DBHelper dbHelper = DBHelper();
+
   @override
   void initState() {
     super.initState();
     initial();
+
+    Future.delayed(const Duration(seconds: 1), () {
+      setState(() {
+        _isLoading = false;
+      });
+    });
   }
 
   void initial() async {
@@ -27,6 +42,22 @@ class _ProfilePageState extends State<ProfilePage> {
     setState(() {
       username = logindata.getString('username')!;
     });
+    getUsers();
+  }
+
+  Future<List<Users>> getUsers() async {
+    final Future<Database> dbFuture = dbHelper.initDb();
+    dbFuture.then((database) {
+      Future<List<Users>> userListFuture = dbHelper.getUsers(username);
+      userListFuture.then((_userList) {
+        if (mounted) {
+          setState(() {
+            userList = _userList;
+          });
+        }
+      });
+    });
+    return userList;
   }
 
   final double coverHeight = 280;
@@ -42,6 +73,16 @@ class _ProfilePageState extends State<ProfilePage> {
 
       final imageTemp = File(image.path);
 
+      Directory? appDocDir = await getExternalStorageDirectory();
+      String appDocPath = appDocDir!.path;
+
+      String destinationPath =
+          '$appDocPath/${DateTime.now().millisecondsSinceEpoch}.jpg';
+
+      await imageTemp.copy(destinationPath);
+
+      editFoto(destinationPath, username);
+
       setState(() => this.image = imageTemp);
     } on PlatformException catch (e) {
       print('Failed to pick image: $e');
@@ -55,6 +96,16 @@ class _ProfilePageState extends State<ProfilePage> {
       if (image == null) return;
 
       final imageTemp = File(image.path);
+
+      Directory? appDocDir = await getExternalStorageDirectory();
+      String appDocPath = appDocDir!.path;
+
+      String destinationPath =
+          '$appDocPath/${DateTime.now().millisecondsSinceEpoch}.jpg';
+
+      await imageTemp.copy(destinationPath);
+
+      editFoto(destinationPath, username);
 
       setState(() => this.image = imageTemp);
     } on PlatformException catch (e) {
@@ -98,22 +149,41 @@ class _ProfilePageState extends State<ProfilePage> {
   Widget buildContent() => Column(
         children: [
           const SizedBox(height: 20),
-          Text("Jeremy Kenneth",
+          Text(username,
               style: GoogleFonts.poppins(
                 fontSize: 28,
                 fontWeight: FontWeight.bold,
                 color: Colors.black,
               )),
           const SizedBox(height: 5),
-          Text("124210007",
+          Text("Password : ",
               style: GoogleFonts.poppins(
-                fontSize: 25,
+                fontSize: 20,
                 color: Colors.black,
               )),
-          const SizedBox(height: 30),
-          const SizedBox(height: 25),
-
-          OutlinedButton(
+          SizedBox(height: 5),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 30),
+            child: userList.isNotEmpty
+                ? Text(
+                    userList[0].userPassword,
+                    style: GoogleFonts.poppins(
+                      fontSize: 15,
+                      color: Colors.black,
+                    ),
+                  )
+                : Text(
+                    'No user data available',
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Colors.black,
+                    ),
+                  ),
+          ),
+          const SizedBox(height: 50),
+          ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.lightBlueAccent),
               onPressed: () {
                 logindata.setBool("login", true);
                 Navigator.pushReplacement(context,
@@ -126,8 +196,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
                     color: Colors.black,
-                  ))
-              )
+                  )))
         ],
       );
 
@@ -138,10 +207,14 @@ class _ProfilePageState extends State<ProfilePage> {
           CircleAvatar(
             radius: profileHeight / 2,
             backgroundImage: image != null
-                ? FileImage(image!)
-                    as ImageProvider<Object> // Display picked image
-                : AssetImage('assets/images/ken.jpeg')
-                    as ImageProvider<Object>, // Default image
+                ? FileImage(image!) as ImageProvider<Object>
+                : (userList.isNotEmpty &&
+                        userList[0].gambar != null &&
+                        userList[0].gambar!.isNotEmpty)
+                    ? FileImage(File(userList[0].gambar!))
+                        as ImageProvider<Object>
+                    : const AssetImage('assets/images/user_profile.png')
+                        as ImageProvider<Object>,
           ),
           Positioned(
             bottom: 20.0,
@@ -210,4 +283,11 @@ class _ProfilePageState extends State<ProfilePage> {
           fit: BoxFit.cover,
         ),
       );
+
+  editFoto(String gambar, String username) async {
+    Database db = await dbHelper.database;
+    var batch = db.batch();
+    db.execute('UPDATE akun SET gambar=? WHERE userName=?', [gambar, username]);
+    await batch.commit();
+  }
 }

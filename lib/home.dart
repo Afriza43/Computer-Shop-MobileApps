@@ -1,13 +1,17 @@
 // ignore_for_file: unused_local_variable,
+import 'dart:io';
 import 'dart:math';
 
 import 'package:finalproject_mobile/detail_produk.dart';
+import 'package:finalproject_mobile/helper/dbhelper.dart';
 import 'package:finalproject_mobile/models/ComputerParts.dart';
+import 'package:finalproject_mobile/models/UserModels.dart';
 import 'package:finalproject_mobile/services/remote_service.dart';
 import 'package:finalproject_mobile/starrating.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:sqflite/sqflite.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -21,10 +25,12 @@ class _HomePageState extends State<HomePage> {
   // late String username;
 
   String username = "";
+  DBHelper dbHelper = DBHelper();
 
   final TextEditingController _searchController = TextEditingController();
   List<Computer>? computers;
   List<Computer>? filteredComputers;
+  List<Users> userList = [];
   var isLoaded = false;
   Tipe selectedTipe = Tipe.MOTHERBOARD;
 
@@ -46,11 +52,27 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  Future<List<Users>> getUsers() async {
+    final Future<Database> dbFuture = dbHelper.initDb();
+    dbFuture.then((database) {
+      Future<List<Users>> userListFuture = dbHelper.getUsers(username);
+      userListFuture.then((_userList) {
+        if (mounted) {
+          setState(() {
+            userList = _userList;
+          });
+        }
+      });
+    });
+    return userList;
+  }
+
   void initial() async {
     SharedPreferences logindata = await SharedPreferences.getInstance();
     setState(() {
       username = logindata.getString('username') ?? "";
     });
+    getUsers();
   }
 
   void onSearchTextChanged(String query) {
@@ -84,8 +106,7 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
         actions: [
-          buildProfileAvatar(
-              'https://i.ibb.co/rp6BG70/ken.jpg'),
+          buildProfileAvatar(userList.isNotEmpty ? userList[0].gambar : null),
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(80),
@@ -119,7 +140,6 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ),
-      
       body: Container(
         color: Colors.white,
         child: Column(
@@ -166,7 +186,8 @@ class _HomePageState extends State<HomePage> {
                     items: Tipe.values.map((Tipe tipe) {
                       return DropdownMenuItem<Tipe>(
                         value: tipe,
-                        child: Text(tipe.toString().split('.').last,
+                        child: Text(
+                          tipe.toString().split('.').last,
                           style: GoogleFonts.montserrat(
                             color: Colors.black,
                             fontSize: 15,
@@ -390,7 +411,8 @@ class _HomePageState extends State<HomePage> {
                                       width: 4,
                                     ),
                                     Padding(
-                                      padding: const EdgeInsets.only(left:15.0),
+                                      padding:
+                                          const EdgeInsets.only(left: 15.0),
                                       child: Container(
                                         width: 60,
                                         height: 60,
@@ -401,7 +423,8 @@ class _HomePageState extends State<HomePage> {
                                           ),
                                           boxShadow: [
                                             BoxShadow(
-                                              color: Colors.grey.withOpacity(0.5),
+                                              color:
+                                                  Colors.grey.withOpacity(0.5),
                                               spreadRadius: 2,
                                               blurRadius: 4,
                                               offset: const Offset(0, 2),
@@ -472,12 +495,15 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget buildProfileAvatar(String imageUrl) {
+  Widget buildProfileAvatar(String? imageUrl) {
     return Padding(
       padding: const EdgeInsets.all(8.0),
       child: CircleAvatar(
-        backgroundImage: NetworkImage(imageUrl),
-        radius: 30, // Adjust the radius as needed
+        backgroundImage: (imageUrl != null && imageUrl.isNotEmpty)
+            ? FileImage(File(imageUrl))
+            : AssetImage('assets/images/user_profile.png')
+                as ImageProvider<Object>,
+        radius: 30, // Sesuaikan radius sesuai kebutuhan
       ),
     );
   }

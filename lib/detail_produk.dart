@@ -4,6 +4,7 @@ import 'package:finalproject_mobile/models/ComputerParts.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 
 class DetailPC extends StatefulWidget {
@@ -20,7 +21,23 @@ class _DetailPCState extends State<DetailPC> {
   double exchangeRate = 1.0;
   late double _harga;
 
+  late SharedPreferences logindata;
+  late String userName = '';
+
   DBHelper dbHelper = DBHelper();
+
+  @override
+  void initState() {
+    super.initState();
+    getLoginData();
+  }
+
+  void getLoginData() async {
+    SharedPreferences logindata = await SharedPreferences.getInstance();
+    setState(() {
+      userName = logindata.getString('username') ?? "";
+    });
+  }
 
   Future<bool> saveOrUpdateCart(Cart cartItem) async {
     try {
@@ -28,20 +45,18 @@ class _DetailPCState extends State<DetailPC> {
 
       List<Map<String, dynamic>> result = await db.query(
         'computer',
-        where: 'id = ?',
-        whereArgs: [cartItem.id],
+        where: 'id = ? AND userName = ?',
+        whereArgs: [cartItem.id, cartItem.userName],
       );
 
       if (result.isNotEmpty) {
-        // If the item is in the cart, update the quantity
         await db.update(
           'computer',
           {'jumlah': cartItem.jumlah},
-          where: 'id = ?',
-          whereArgs: [cartItem.id],
+          where: 'id = ? AND userName = ?',
+          whereArgs: [cartItem.id, cartItem.userName],
         );
       } else {
-        // If the item is not in the cart, insert a new record
         await db.insert(
           'computer',
           {
@@ -52,6 +67,7 @@ class _DetailPCState extends State<DetailPC> {
             'tipe': cartItem.tipe,
             'deskripsi': cartItem.deskripsi,
             'jumlah': cartItem.jumlah,
+            'userName': cartItem.userName
           },
           conflictAlgorithm: ConflictAlgorithm.replace,
         );
@@ -108,7 +124,7 @@ class _DetailPCState extends State<DetailPC> {
               const SizedBox(height: 10),
 
               Padding(
-                padding: const EdgeInsets.only(left:10.0),
+                padding: const EdgeInsets.only(left: 10.0),
                 child: Text(
                   widget.komputer.deskripsi,
                   style: GoogleFonts.montserrat(
@@ -183,8 +199,9 @@ class _DetailPCState extends State<DetailPC> {
                                   child: Text(
                                     currency,
                                     style: GoogleFonts.montserrat(
-                                      fontWeight: FontWeight.bold,fontSize: 15,color: Colors.black
-                                    ),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 15,
+                                        color: Colors.black),
                                   ),
                                 ))
                             .toList(),
@@ -263,14 +280,14 @@ class _DetailPCState extends State<DetailPC> {
               GestureDetector(
                 onTap: () async {
                   Cart cartItem = Cart(
-                    id: widget.komputer.id,
-                    nama: widget.komputer.nama,
-                    harga: widget.komputer.harga,
-                    gambar: widget.komputer.gambar,
-                    tipe: widget.komputer.tipe.toString().split('.').last,
-                    deskripsi: widget.komputer.deskripsi,
-                    jumlah: quantity,
-                  );
+                      id: widget.komputer.id,
+                      nama: widget.komputer.nama,
+                      harga: widget.komputer.harga,
+                      gambar: widget.komputer.gambar,
+                      tipe: widget.komputer.tipe.toString().split('.').last,
+                      deskripsi: widget.komputer.deskripsi,
+                      jumlah: quantity,
+                      userName: userName);
 
                   // Save or update cart based on item existence
                   bool success = await saveOrUpdateCart(cartItem);

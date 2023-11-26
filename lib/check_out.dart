@@ -3,6 +3,7 @@ import 'package:finalproject_mobile/helper/dbhistory.dart';
 import 'package:finalproject_mobile/models/Cart_model.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 
 class CheckoutPage extends StatefulWidget {
@@ -16,20 +17,28 @@ class CheckoutPage extends StatefulWidget {
 
 class _CheckoutPageState extends State<CheckoutPage> {
   HistoryDBHelper dbHelper = HistoryDBHelper();
+  late String userName = "";
+
+  @override
+  void initState() {
+    super.initState();
+    getLoginData();
+  }
+
+  void getLoginData() async {
+    SharedPreferences logindata = await SharedPreferences.getInstance();
+    setState(() {
+      userName = logindata.getString('username') ?? "";
+    });
+  }
 
   saveHistory(String nama, int subtotal, String gambar, int quantity,
-      String purchaseTime) async {
+      String purchaseTime, String userName) async {
     Database db = await dbHelper.historyDatabase;
     var batch = db.batch();
     db.execute(
-      'INSERT INTO riwayat_bayar (nama, subtotal, gambar, quantity, purchaseTime) VALUES (?, ?, ?, ?, ?)',
-      [
-        nama,
-        subtotal,
-        gambar,
-        quantity,
-        purchaseTime,
-      ],
+      'INSERT INTO riwayat_bayar (nama, subtotal, gambar, quantity, purchaseTime, userName) VALUES (?, ?, ?, ?, ?, ?)',
+      [nama, subtotal, gambar, quantity, purchaseTime, userName],
     );
     await batch.commit();
   }
@@ -139,6 +148,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                     item.gambar,
                     item.jumlah,
                     DateTime.now().toLocal().toString(),
+                    item.userName,
                   );
                 }
                 await clearCart();
@@ -194,7 +204,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
     Database db = await dbHelper.database;
     var batch = db.batch();
     for (var item in widget.cartItems) {
-      batch.delete('computer', where: 'id = ?', whereArgs: [item.id]);
+      batch.delete('computer',
+          where: 'id = ? AND userName = ?',
+          whereArgs: [item.id, item.userName]);
     }
     await batch.commit();
   }

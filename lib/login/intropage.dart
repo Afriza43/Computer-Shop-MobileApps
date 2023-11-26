@@ -19,7 +19,7 @@ class IntroPage extends StatelessWidget {
               height: 25,
             ),
             Text(
-              "KENNY COMPUTERS",
+              "KENZA COMPUTERS",
               style: GoogleFonts.kanit(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
@@ -47,15 +47,13 @@ class IntroPage extends StatelessWidget {
             ),
             Text(
               "Build your Dream PC in here with us",
-              style: GoogleFonts.poppins(height: 2,color: Colors.black),
+              style: GoogleFonts.poppins(height: 2, color: Colors.black),
             ),
-
             const SizedBox(
               height: 25,
             ),
-
             MyButton(
-              onTap: (){
+              onTap: () {
                 Navigator.pushNamed(context, '/login');
               },
             ),
